@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ user.name }} · Westbridge CC{% endblock %}
+{% block content %}
+<div class="card narrow reveal">
+  <div class="cardhead">
+    <div>
+      <h1 style="font-size:1.3rem">Edit person</h1>
+      <p class="muted" style="margin:0">{{ user.name }}</p>
+    </div>
+    <a href="{{ url_for('main.players') }}" class="muted" style="font-size:1.3rem;text-decoration:none">×</a>
+  </div>
+
+  <form method="post" action="{{ url_for('main.edit_player', user_id=user.id) }}" style="margin-top:1rem">
+    <label>Name
+      <input type="text" name="name" value="{{ form.get('name', '') }}" required autofocus>
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{ form.get('email', '') }}" required>
+    </label>
+
+    <fieldset class="role-picker">
+      <legend>Role</legend>
+      <label class="inline">
+        <input type="radio" name="role" value="player" data-role
+               {{ 'checked' if form.get('role') == 'player' else '' }}> Player
+      </label>
+      <label class="inline">
+        <input type="radio" name="role" value="organizer" data-role
+               {{ 'checked' if form.get('role') == 'organizer' else '' }}> Admin
+      </label>
+    </fieldset>
+
+    <label data-team-field>Team <small class="muted">(players only)</small>
+      <select name="team_id">
+        <option value="">— No team —</option>
+        {% for team in teams %}
+          <option value="{{ team.id }}" {{ 'selected' if form.get('team_id') == team.id|string else '' }}>
+            {{ team.name }} — {{ team.division }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Reset password <small class="muted">(leave blank to keep current)</small>
+      <span class="pw-wrap">
+        <input type="password" name="password" minlength="6" autocomplete="new-password">
+        <button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">Show</button>
+      </span>
+    </label>
+
+    <div class="row" style="margin-top:0.4rem">
+      <button type="submit" class="btn btn-primary" style="flex:1">Save changes</button>
+      <a class="btn" href="{{ url_for('main.players') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

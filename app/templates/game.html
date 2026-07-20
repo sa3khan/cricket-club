@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% import "_availability.html" as av %}
+{% block title %}{{ game.team.name }} vs {{ game.opponent }} · Westbridge CC{% endblock %}
+{% block content %}
+
+<div class="card reveal">
+  <div class="cardhead">
+    <div>
+      <span class="eyebrow">{{ game.starts_at.strftime('%A %-d %B · %-I:%M %p') }} · {{ 'Home' if game.is_home else 'Away' }}</span>
+      <h1 style="margin-top:0.4rem">{{ game.team.name }} {{ 'vs' if game.is_home else '@' }} {{ game.opponent }}</h1>
+      <p class="muted" style="margin:0.2rem 0 0">
+        {{ av.match_badge(game) }}
+        {% if game.venue %}<span style="margin-left:0.4rem">{{ game.venue }}</span>{% endif %}
+      </p>
+      {% if game.notes %}<p style="margin:0.6rem 0 0">{{ game.notes }}</p>{% endif %}
+    </div>
+    <a class="btn" href="{{ url_for('main.team_detail', team_id=game.team_id) }}">← {{ game.team.name }}</a>
+  </div>
+
+  {% if game.has_result %}
+    <div style="margin-top:1rem">{{ av.scorecard(game) }}</div>
+  {% endif %}
+
+  {% if can_respond and not game.is_past %}
+    <div class="respondrow" style="margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--line)">
+      <strong>Your availability:</strong>
+      {{ av.status_buttons(game, my_status, url_for('main.game_detail', game_id=game.id)) }}
+    </div>
+  {% endif %}
+
+  {% if current_user.is_organizer and not game.is_past %}
+    <div style="margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--line);display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
+      <a class="btn btn-primary" href="{{ url_for('main.selection', game_id=game.id) }}">🏏 Plan the XI</a>
+      <span class="muted small">{{ lineup_count }}/{{ xi_size }} picked</span>
+    </div>
+  {% endif %}
+</div>
+
+{% if current_user.is_organizer and game.is_past %}
+<section class="card reveal">
+  <h2>Record result</h2>
+  <form method="post" action="{{ url_for('main.record_result', game_id=game.id) }}">
+    <div class="row">
+      <label style="flex:1">Match overs (per side)
+        <input type="number" name="overs" min="1" max="100" step="1" value="{{ game.overs or '' }}" placeholder="40">
+      </label>
+      <label style="flex:1">Result
+        <select name="result">
+          <option value="" {{ 'selected' if not game.result else '' }}>— auto from scores —</option>
+          {% for r in result_choices %}
+            <option value="{{ r }}" {{ 'selected' if game.result == r else '' }}>{{ r.replace('_',' ')|title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <fieldset class="role-picker">
+      <legend>Who batted first?</legend>
+      <label class="inline">
+        <input type="radio" name="batted_first" value="us"
+               {{ 'checked' if game.we_batted_first == true else '' }}> {{ game.team.name }}
+      </label>
+      <label class="inline">
+        <input type="radio" name="batted_first" value="them"
+               {{ 'checked' if game.we_batted_first == false else '' }}> {{ game.opponent }}
+      </label>
+      <label class="inline">
+        <input type="radio" name="batted_first" value=""
+               {{ 'checked' if game.we_batted_first is none else '' }}> Unknown
+      </label>
+    </fieldset>
+
+    <div class="scoreblock">
+      <div class="scoreblock-team">{{ game.team.name }}</div>
+      <div class="scoregrid">
+        <label>Runs<input type="number" name="our_runs" min="0" step="1" value="{{ game.our_runs if game.our_runs is not none else '' }}" placeholder="182"></label>
+        <label>Wickets<input type="number" name="our_wkts" min="0" max="10" step="1" value="{{ game.our_wkts if game.our_wkts is not none else '' }}" placeholder="6"></label>
+        <label>Overs<input type="number" name="our_overs" min="0" step="0.1" value="{{ game.our_overs if game.our_overs is not none else '' }}" placeholder="40"></label>
+      </div>
+    </div>
+
+    <div class="scoreblock">
+      <div class="scoreblock-team">{{ game.opponent }}</div>
+      <div class="scoregrid">
+        <label>Runs<input type="number" name="opp_runs" min="0" step="1" value="{{ game.opp_runs if game.opp_runs is not none else '' }}" placeholder="178"></label>
+        <label>Wickets<input type="number" name="opp_wkts" min="0" max="10" step="1" value="{{ game.opp_wkts if game.opp_wkts is not none else '' }}" placeholder="10"></label>
+        <label>Overs<input type="number" name="opp_overs" min="0" step="0.1" value="{{ game.opp_overs if game.opp_overs is not none else '' }}" placeholder="38.3"></label>
+      </div>
+    </div>
+
+    <label>Man of the match
+      <input type="text" name="motm" value="{{ game.motm or '' }}" placeholder="Player name">
+    </label>
+    <p class="muted small" style="margin:-0.2rem 0 0.8rem">
+      Overs use cricket notation — e.g. <code>38.3</code> means 38 overs, 3 balls.
+      The margin (“by 5 wickets” / “by 40 runs”) is worked out automatically from the scores and who batted first.
+      For a rained-off game pick <strong>No result</strong> and leave the scores blank.
+    </p>
+    <button type="submit" class="btn btn-primary">Save result</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="card reveal">
+  <h2>Availability board</h2>
+  <div class="counts">
+    <span class="count count-available">{{ board.available|length }} in</span>
+    <span class="count count-maybe">{{ board.maybe|length }} maybe</span>
+    <span class="count count-unavailable">{{ board.unavailable|length }} out</span>
+    <span class="count count-none">{{ board.no_response|length }} no response</span>
+  </div>
+
+  <div class="boardgrid">
+    {% set columns = [
+      ('available', "In", board.available),
+      ('maybe', 'Maybe', board.maybe),
+      ('unavailable', 'Out', board.unavailable),
+      ('no_response', 'No response', board.no_response)
+    ] %}
+    {% for key, title, players in columns %}
+      <div class="boardcol boardcol-{{ key }}">
+        <h3>{{ title }} <span class="muted" style="font-weight:400">({{ players|length }})</span></h3>
+        {% if players %}
+          <ul>
+            {% for p in players %}<li>{{ p.name }}</li>{% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted small">—</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

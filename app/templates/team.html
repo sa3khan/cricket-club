@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% import "_availability.html" as av %}
+{% block title %}{{ team.name }} · Westbridge CC{% endblock %}
+{% block content %}
+
+{% set can_respond = current_user.team_id == team.id %}
+{% set glyph = {'available': '✓', 'maybe': '~', 'unavailable': '✕'} %}
+
+<div class="card plain reveal">
+  <div class="cardhead">
+    <div>
+      <span class="pill" style="background:var(--green);color:var(--on-green)">{{ team.division }}</span>
+      <h1 style="margin-top:0.5rem">{{ team.name }}</h1>
+      <div style="margin-top:0.4rem">{{ av.form_guide(form) }}</div>
+    </div>
+    {% if current_user.is_organizer %}
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <a class="btn" href="{{ url_for('main.edit_team', team_id=team.id) }}">Edit team</a>
+        <a class="btn" href="{{ url_for('main.edit_roster', team_id=team.id) }}">Manage roster</a>
+        <a class="btn btn-dark" href="{{ url_for('main.new_game', team_id=team.id) }}">+ New fixture</a>
+      </div>
+    {% endif %}
+  </div>
+  <nav class="tabs" data-tabs>
+    <a href="#schedule" data-tab="schedule" class="active">Schedule</a>
+    <a href="#roster" data-tab="roster">Roster</a>
+    <a href="#availability" data-tab="availability">Availability</a>
+  </nav>
+</div>
+
+<section data-panel="schedule">
+  <div class="eyebrow" style="margin:0 0 0.6rem">Upcoming</div>
+  {% if upcoming %}
+    <div class="fixtures">
+      {% for game in upcoming %}
+        <div class="reveal">
+        {{ av.fixture_card(game, in_counts.get(game.id), my_status.get(game.id),
+                           url_for('main.team_detail', team_id=team.id), can_respond) }}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card"><p class="muted">No upcoming fixtures.</p></div>
+  {% endif %}
+
+  {% if past %}
+    <div class="eyebrow" style="margin:1.6rem 0 0.6rem">Past</div>
+    <div class="fixtures">
+      {% for game in past %}
+        {{ av.fixture_card(game, none, none, '', false, past=true) }}
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+
+<section data-panel="roster" hidden>
+  <div class="card">
+    <div class="cardhead">
+      <h2>Roster <span class="muted" style="font-weight:400">({{ roster|length }})</span></h2>
+      {% if current_user.is_organizer %}
+        <a class="btn" style="padding:0.4rem 0.9rem;font-size:0.82rem" href="{{ url_for('main.edit_roster', team_id=team.id) }}">Manage roster</a>
+      {% endif %}
+    </div>
+    {% if roster %}
+      <ul class="roster">
+        {% for player in roster %}
+          <li>{{ player.name }}{% if player.id == current_user.id %} <span class="pill pill-org">you</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No players have registered for this team yet.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section data-panel="availability" hidden>
+  <div class="card">
+    <h2>Availability heatmap</h2>
+    {% if upcoming and roster %}
+      <p class="muted small" style="margin:-0.4rem 0 1rem">Who's confirmed across the next {{ upcoming|length }} fixtures — tap a fixture to see the full board.</p>
+      <div class="heatwrap">
+        <table class="heat">
+          <thead>
+            <tr>
+              <th class="corner rowname">Player</th>
+              {% for game in upcoming %}
+                <th><a href="{{ url_for('main.game_detail', game_id=game.id) }}">{{ game.starts_at.strftime('%-d') }}<br>{{ game.starts_at.strftime('%b') }}</a></th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in roster %}
+              <tr>
+                <td class="rowname">{{ player.name }}</td>
+                {% for game in upcoming %}
+                  {% set st = matrix.get((player.id, game.id)) %}
+                  <td>
+                    <div class="cell {{ st or 'none' }}"
+                         title="{{ player.name }} · {{ game.starts_at.strftime('%-d %b') }} vs {{ game.opponent }}: {{ st or 'no response' }}">
+                      {{ glyph.get(st, '·') }}
+                    </div>
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="heat-legend">
+        <span><i class="available"></i> In (✓)</span>
+        <span><i class="maybe"></i> Maybe (~)</span>
+        <span><i class="unavailable"></i> Out (✕)</span>
+        <span><i class="none"></i> No response (·)</span>
+      </div>
+    {% else %}
+      <p class="muted">Need fixtures and players to build the heatmap.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

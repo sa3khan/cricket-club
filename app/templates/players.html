@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Players · Westbridge CC{% endblock %}
+{% block content %}
+<div class="cardhead reveal" style="margin-bottom:1rem">
+  <div>
+    <h1>Players</h1>
+    <p class="muted">{{ people|length }} account{{ '' if people|length == 1 else 's' }}</p>
+  </div>
+  <form method="get" action="{{ url_for('main.players') }}" style="margin:0">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name or email…"
+           style="min-width:220px;margin:0">
+  </form>
+</div>
+
+<div class="card reveal" style="padding:0.4rem 0.6rem">
+  <div class="people">
+    {% for p in people %}
+      <a class="person" href="{{ url_for('main.edit_player', user_id=p.id) }}">
+        <span class="person-main">
+          <span class="person-name">{{ p.name }}</span>
+          <span class="person-email muted small">{{ p.email }}</span>
+        </span>
+        <span class="person-team muted small">
+          {% if p.is_organizer %}—{% elif p.team %}{{ p.team.name }}{% else %}<em>Unassigned</em>{% endif %}
+        </span>
+        <span class="pill {{ 'pill-org' if p.is_organizer else '' }}"
+              style="{{ 'background:var(--green);color:var(--on-green)' if not p.is_organizer else '' }}">
+          {{ 'Admin' if p.is_organizer else 'Player' }}
+        </span>
+        <span class="person-edit">Edit →</span>
+      </a>
+    {% else %}
+      <p class="muted" style="padding:1rem">No players match “{{ q }}”.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

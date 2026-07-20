@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Manage roster · {{ team.name }}{% endblock %}
+{% block content %}
+
+<div class="card plain reveal">
+  <div class="cardhead">
+    <div>
+      <span class="eyebrow">Roster · {{ team.division }}</span>
+      <h1 style="margin-top:0.4rem">{{ team.name }}</h1>
+    </div>
+    <a class="btn" href="{{ url_for('main.team_detail', team_id=team.id) }}">← Team</a>
+  </div>
+</div>
+
+<section class="card reveal">
+  <h2>Squad <span class="muted" style="font-weight:400">({{ roster|length }})</span></h2>
+  {% if roster %}
+    <div class="people">
+      {% for p in roster %}
+        <div class="person static">
+          <span class="person-main">
+            <span class="person-name">{{ p.name }}</span>
+            <span class="person-email muted small">{{ p.email }}</span>
+          </span>
+          <a class="btn" style="padding:0.35rem 0.8rem;font-size:0.8rem" href="{{ url_for('main.edit_player', user_id=p.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('main.roster_remove', team_id=team.id) }}" style="margin:0">
+            <input type="hidden" name="user_id" value="{{ p.id }}">
+            <button type="submit" class="btn btn-ghost-danger" style="padding:0.35rem 0.8rem;font-size:0.8rem">Remove</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No players on this team yet — add some below.</p>
+  {% endif %}
+</section>
+
+<section class="card reveal">
+  <h2>Add an existing player</h2>
+  {% if addable %}
+    <form method="post" action="{{ url_for('main.roster_add', team_id=team.id) }}">
+      <div class="row" style="align-items:flex-end">
+        <label style="flex:1;margin:0">Player
+          <select name="user_id" required>
+            <option value="">— Choose a player —</option>
+            {% for p in addable %}
+              <option value="{{ p.id }}">{{ p.name }} {% if p.team %}(currently {{ p.team.name }}){% else %}(unassigned){% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary">Add to squad</button>
+      </div>
+    </form>
+    <p class="muted small" style="margin-top:0.6rem">Moving a player here removes them from their previous team.</p>
+  {% else %}
+    <p class="muted">Every player is already on this team.</p>
+  {% endif %}
+</section>
+
+<section class="card reveal">
+  <h2>Create a new player</h2>
+  <form method="post" action="{{ url_for('main.roster_add', team_id=team.id) }}">
+    <div class="row">
+      <label>Name
+        <input type="text" name="name" placeholder="Full name">
+      </label>
+      <label>Email
+        <input type="email" name="email" placeholder="player@club.net">
+      </label>
+    </div>
+    <label>Temporary password
+      <span class="pw-wrap">
+        <input type="password" name="password" minlength="6" autocomplete="new-password">
+        <button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">Show</button>
+      </span>
+      <small class="muted">They can change it later from their profile.</small>
+    </label>
+    <button type="submit" class="btn btn-dark">Create &amp; add player</button>
+  </form>
+</section>
+{% endblock %}

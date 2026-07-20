@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}New fixture · {{ team.name }}{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <div class="cardhead">
+    <div>
+      <h1 style="font-size:1.3rem">New fixture</h1>
+      <p class="muted" style="margin:0">{{ team.name }} · {{ team.division }}</p>
+    </div>
+    <a href="{{ url_for('main.team_detail', team_id=team.id) }}" class="muted" style="font-size:1.3rem;text-decoration:none">×</a>
+  </div>
+
+  <form method="post" action="{{ url_for('main.new_game', team_id=team.id) }}" style="margin-top:1rem">
+    <label>Opponent
+      <input type="text" name="opponent" value="{{ form.get('opponent', '') }}" required autofocus placeholder="Harlow Titans">
+    </label>
+    <div class="row">
+      <label>Date
+        <input type="date" name="date" value="{{ form.get('date', '') }}" required>
+      </label>
+      <label>Time
+        <input type="time" name="time" value="{{ form.get('time', '') }}" required>
+      </label>
+    </div>
+    <div class="row">
+      <label style="flex:2">Venue
+        <input type="text" name="venue" value="{{ form.get('venue', '') }}" placeholder="The Oval Green">
+      </label>
+      <label style="flex:1">Overs per side
+        <input type="number" name="overs" min="1" max="100" step="1"
+               value="{{ form.get('overs', '40') }}" placeholder="40">
+      </label>
+    </div>
+
+    <fieldset class="role-picker">
+      <legend>Home or away?</legend>
+      <label class="inline">
+        <input type="radio" name="is_home" value="home"
+               {{ 'checked' if form.get('is_home', 'home') == 'home' else '' }}> Home
+      </label>
+      <label class="inline">
+        <input type="radio" name="is_home" value="away"
+               {{ 'checked' if form.get('is_home') == 'away' else '' }}> Away
+      </label>
+    </fieldset>
+
+    <label>Notes
+      <textarea name="notes" rows="2" placeholder="Meet time, kit colour, etc.">{{ form.get('notes', '') }}</textarea>
+    </label>
+
+    <div class="row" style="margin-top:0.4rem">
+      <button type="submit" class="btn btn-primary" style="flex:1">Save fixture</button>
+      <a class="btn" href="{{ url_for('main.team_detail', team_id=team.id) }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

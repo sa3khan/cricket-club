@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Your profile · Westbridge CC{% endblock %}
+{% block content %}
+<div class="card narrow reveal">
+  <h1 style="font-size:1.35rem">Your profile</h1>
+  <p class="muted" style="margin-top:0">
+    Signed in as
+    <span class="pill {{ 'pill-org' if current_user.is_organizer else 'pill-player' }}"
+          style="{{ 'background:var(--green);color:var(--on-green)' if not current_user.is_organizer else '' }}">
+      {{ 'Admin' if current_user.is_organizer else 'Player' }}
+    </span>
+  </p>
+
+  <form method="post" action="{{ url_for('main.profile') }}" style="margin-top:1rem">
+    <label>Name
+      <input type="text" name="name" value="{{ form.get('name', '') }}" required autofocus>
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{ form.get('email', '') }}" required>
+    </label>
+
+    {% if current_user.role == 'player' %}
+    <label>Team
+      <select name="team_id">
+        <option value="">— Select your team —</option>
+        {% for team in teams %}
+          <option value="{{ team.id }}" {{ 'selected' if form.get('team_id') == team.id|string else '' }}>
+            {{ team.name }} — {{ team.division }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+
+    <label>New password <small class="muted">(leave blank to keep current)</small>
+      <span class="pw-wrap">
+        <input type="password" name="password" minlength="6" autocomplete="new-password">
+        <button type="button" class="pw-toggle" data-pw-toggle aria-label="Show password" aria-pressed="false">Show</button>
+      </span>
+    </label>
+
+    <button type="submit" class="btn btn-primary">Save profile</button>
+  </form>
+</div>
+{% endblock %}

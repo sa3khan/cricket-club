@@ -1,0 +1,110 @@
+{% macro status_buttons(game, current_status, next_url) %}
+<form method="post" action="{{ url_for('main.respond', game_id=game.id) }}" class="statusform">
+  <input type="hidden" name="next" value="{{ next_url }}">
+  {% set opts = [('available', "I'm in"), ('maybe', 'Maybe'), ('unavailable', "Can't make it")] %}
+  {% for value, label in opts %}
+    <button type="submit" name="status" value="{{ value }}"
+            class="chip chip-{{ value }} {{ 'active' if current_status == value else '' }}">
+      {{ label }}
+    </button>
+  {% endfor %}
+</form>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+  {% if status == 'available' %}<span class="badge badge-available">In</span>
+  {% elif status == 'maybe' %}<span class="badge badge-maybe">Maybe</span>
+  {% elif status == 'unavailable' %}<span class="badge badge-unavailable">Out</span>
+  {% else %}<span class="badge badge-none">No response</span>{% endif %}
+{% endmacro %}
+
+{# Match status badge derived from game.schedule_state #}
+{% macro match_badge(game) %}
+  {% set meta = {
+    'upcoming': ('Upcoming', 'upcoming'),
+    'today': ('Today', 'today'),
+    'completed': ('Result pending', 'neutral'),
+    'won': ('Won', 'won'),
+    'lost': ('Lost', 'lost'),
+    'draw': ('Draw', 'draw'),
+    'tie': ('Tied', 'draw'),
+    'no_result': ('No result', 'neutral'),
+  } %}
+  {% set label, kind = meta.get(game.schedule_state, ('Upcoming', 'upcoming')) %}
+  <span class="mbadge mbadge-{{ kind }}">{{ label }}</span>
+{% endmacro %}
+
+{# Last-5 form guide: pass games oldest -> newest.
+   link=False renders spans (for use inside an <a> card). #}
+{% macro form_guide(games, label=True, link=True) %}
+{% set letters = {'won':('W','won'), 'lost':('L','lost'), 'draw':('D','draw'), 'tie':('T','draw'), 'no_result':('N','neutral')} %}
+<span class="formguide">
+  {% if label %}<span class="formguide-lbl">Form</span>{% endif %}
+  {% if games %}
+    {% for g in games %}
+      {% set ch, kind = letters.get(g.result, ('?','neutral')) %}
+      {% set tip = g.starts_at.strftime('%-d %b') ~ ' vs ' ~ g.opponent ~ ': ' ~ (g.result|replace('_',' ')|title) ~ (' ' ~ g.margin if g.margin else '') %}
+      {% if link %}
+        <a class="formpill formpill-{{ kind }}" href="{{ url_for('main.game_detail', game_id=g.id) }}" title="{{ tip }}">{{ ch }}</a>
+      {% else %}
+        <span class="formpill formpill-{{ kind }}" title="{{ tip }}">{{ ch }}</span>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <span class="muted small">No results yet</span>
+  {% endif %}
+</span>
+{% endmacro %}
+
+{# Compact scorecard for a completed fixture #}
+{% macro scorecard(game) %}
+{% if game.has_result %}
+<div class="scorecard">
+  <div class="sc-line {{ 'winner' if game.result == 'won' else '' }}">
+    <span class="sc-team">{{ game.team.name }}</span>
+    <span class="sc-runs">{{ game.our_score or 'DNB' }}</span>
+  </div>
+  <div class="sc-line {{ 'winner' if game.result == 'lost' else '' }}">
+    <span class="sc-team">{{ game.opponent }}</span>
+    <span class="sc-runs">{{ game.opp_score or 'DNB' }}</span>
+  </div>
+  <div class="sc-foot">
+    {{ match_badge(game) }}
+    {% if game.overs %}<span class="sc-note">{{ game.overs }}-over match</span>{% endif %}
+    {% if game.result_summary %}<span class="sc-note">· {{ game.result_summary }}</span>{% endif %}
+    {% if game.motm %}<span class="sc-motm">🏅 {{ game.motm }}</span>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro fixture_card(game, in_count, current_status, next_url, can_respond, past=False) %}
+<div class="fixture {{ 'past' if past else '' }}">
+  <div class="fixture-top">
+    <div class="datebadge {{ 'soft' if past else '' }}">
+      <div class="dow">{{ game.starts_at.strftime('%a')|upper }}</div>
+      <div class="day">{{ game.starts_at.strftime('%d') }}</div>
+    </div>
+    <div class="fixture-main">
+      <a class="fixture-opp" href="{{ url_for('main.game_detail', game_id=game.id) }}">
+        {{ 'vs' if game.is_home else '@' }} {{ game.opponent }}
+      </a>
+      <div class="fixture-meta">
+        {{ game.starts_at.strftime('%-I:%M %p') }} ·
+        {{ 'Home' if game.is_home else 'Away' }}{% if game.venue %} · {{ game.venue }}{% endif %}
+      </div>
+    </div>
+    <div class="fixture-side">
+      {% if not past %}{{ match_badge(game) }}{% endif %}
+      {% if in_count is not none %}
+        <span class="incount {{ 'short' if in_count < 11 else '' }}">{{ in_count }} in</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if past %}
+    {{ scorecard(game) }}
+  {% elif can_respond %}
+    {{ status_buttons(game, current_status, next_url) }}
+  {% endif %}
+</div>
+{% endmacro %}

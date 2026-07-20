@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ team.name }} · Westbridge CC{% endblock %}
+{% block content %}
+<div class="card narrow reveal">
+  <div class="cardhead">
+    <div>
+      <h1 style="font-size:1.3rem">Edit team</h1>
+      <p class="muted" style="margin:0">{{ team.name }}</p>
+    </div>
+    <a href="{{ url_for('main.team_detail', team_id=team.id) }}" class="muted" style="font-size:1.3rem;text-decoration:none">×</a>
+  </div>
+  <form method="post" action="{{ url_for('main.edit_team', team_id=team.id) }}" style="margin-top:1rem">
+    <label>Team name
+      <input type="text" name="name" value="{{ form.get('name', '') }}" required autofocus>
+    </label>
+    <label>Division
+      <input type="text" name="division" value="{{ form.get('division', '') }}" required placeholder="Division 2">
+    </label>
+    <div class="row" style="margin-top:0.4rem">
+      <button type="submit" class="btn btn-primary" style="flex:1">Save changes</button>
+      <a class="btn" href="{{ url_for('main.team_detail', team_id=team.id) }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Register · Cricket Club{% endblock %}
+{% block content %}
+<div class="card narrow reveal">
+  <h1>Create your account</h1>
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label>Name
+      <input type="text" name="name" value="{{ form.get('name', '') }}" required autofocus>
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{ form.get('email', '') }}" required>
+    </label>
+    <label>Password
+      <input type="password" name="password" minlength="6" required>
+      <small class="muted">At least 6 characters.</small>
+    </label>
+
+    <fieldset class="role-picker">
+      <legend>I am a…</legend>
+      <label class="inline">
+        <input type="radio" name="role" value="player"
+               {{ 'checked' if form.get('role', 'player') == 'player' else '' }}>
+        Player
+      </label>
+      <label class="inline">
+        <input type="radio" name="role" value="organizer"
+               {{ 'checked' if form.get('role') == 'organizer' else '' }}>
+        Organizer
+      </label>
+    </fieldset>
+
+    <label>Team <small class="muted">(players only)</small>
+      <select name="team_id">
+        <option value="">— Select your team —</option>
+        {% for team in teams %}
+          <option value="{{ team.id }}"
+            {{ 'selected' if form.get('team_id') == team.id|string else '' }}>
+            {{ team.name }} — {{ team.division }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <button type="submit" class="btn btn-primary">Register</button>
+  </form>
+  <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a>.</p>
+</div>
+{% endblock %}

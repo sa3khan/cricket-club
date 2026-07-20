@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "_availability.html" as av %}
+{% block title %}Pick the XI · {{ game.team.name }}{% endblock %}
+{% block content %}
+
+<div class="card plain reveal">
+  <div class="cardhead">
+    <div>
+      <span class="eyebrow">Captain's matrix · {{ game.starts_at.strftime('%a %-d %b') }}</span>
+      <h1 style="margin-top:0.4rem">Pick the XI — {{ 'vs' if game.is_home else '@' }} {{ game.opponent }}</h1>
+    </div>
+    <a class="btn" href="{{ url_for('main.game_detail', game_id=game.id) }}">← Fixture</a>
+  </div>
+</div>
+
+<div class="card reveal">
+  <div class="xi-head">
+    <div class="xi-counter">
+      <span class="xi-num" id="xiCount" data-full="{{ picked|length >= xi_size }}">{{ picked|length }}</span><span class="xi-den">/ {{ xi_size }}</span>
+      <span class="muted small" id="xiHint">{{ 'Squad complete ✅' if picked|length >= xi_size else 'players selected' }}</span>
+    </div>
+    <div class="heat-legend" style="margin:0">
+      <span><i class="available"></i> Available</span>
+      <span><i class="maybe"></i> Maybe</span>
+      <span><i class="none"></i> No response</span>
+      <span><i class="unavailable"></i> Unavailable</span>
+    </div>
+  </div>
+
+  <div class="matrix">
+    {% for p in rows %}
+      {% set st = responses.get(p.id) %}
+      <div class="mrow {{ 'picked' if p.id in picked else '' }}" data-row>
+        <span class="mrow-dot cell {{ st or 'none' }}" title="{{ st or 'no response' }}">{{ {'available':'✓','maybe':'~','unavailable':'✕'}.get(st, '·') }}</span>
+        <span class="mrow-name">{{ p.name }}</span>
+        <span class="mrow-status muted small">{{ (st or 'no response')|replace('unavailable','out')|title }}</span>
+        <form method="post" action="{{ url_for('main.pick', game_id=game.id) }}" class="pickform">
+          <input type="hidden" name="user_id" value="{{ p.id }}">
+          <button type="submit" class="pick-btn {{ 'on' if p.id in picked else '' }}">
+            <span class="pick-on">✓ In XI</span>
+            <span class="pick-off">Add</span>
+          </button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

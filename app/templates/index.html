@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% import "_availability.html" as av %}
+{% block title %}Home · Westbridge CC{% endblock %}
+{% block content %}
+
+{% if dashboard %}
+{# ---- Organizer dashboard ---- #}
+<div class="cardhead reveal" style="margin-bottom:1.1rem">
+  <div>
+    <h1>Club Dashboard</h1>
+    <p class="muted">Next 6 weeks · {{ teams|length }} teams</p>
+  </div>
+</div>
+
+<div class="tiles">
+  <div class="tile reveal"><div class="num" data-count="{{ dashboard.upcoming_count }}">0</div><div class="lbl">upcoming fixtures</div></div>
+  <div class="tile reveal"><div class="num orange" data-count="{{ dashboard.short_count }}">0</div><div class="lbl">short on players</div></div>
+  <div class="tile reveal"><div class="num" data-count="{{ dashboard.avg_pct }}" data-suffix="%">0%</div><div class="lbl">avg availability</div></div>
+</div>
+
+{# ---- Availability visual: donut + per-team bars ---- #}
+{% set rated = dashboard.team_cards | selectattr('pct', 'ne', None) | list %}
+{% if rated %}
+<div class="card reveal">
+  <h2>Availability by team <span class="muted small" style="font-weight:400">· share of squad confirmed for next fixture</span></h2>
+  <div class="dash-split">
+    <div class="donut-card">
+      <div class="donut" style="--p:{{ dashboard.avg_pct }}">
+        <span class="val" data-count="{{ dashboard.avg_pct }}" data-suffix="%">0%</span>
+      </div>
+      <div class="muted small">club average</div>
+    </div>
+    <div class="bars">
+      {% for c in rated %}
+        <div class="bar-row">
+          <a class="bar-name" href="{{ url_for('main.team_detail', team_id=c.team.id) }}">{{ c.team.name }}</a>
+          <div class="bar-track">
+            <div class="bar-fill {{ 'short' if c.short else '' }}" data-w="{{ c.pct }}"
+                 title="{{ c.team.name }}: {{ c.in_count }} of {{ c.size }} in"></div>
+          </div>
+          <div class="bar-val">{{ c.pct }}%</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if dashboard.next_week %}
+<div class="card reveal">
+  <h2>Next 7 days</h2>
+  <div class="week-strip">
+    {% for g in dashboard.next_week %}
+      <a class="week-item" href="{{ url_for('main.game_detail', game_id=g.id) }}">
+        <div class="wd">{{ g.starts_at.strftime('%a %-d %b')|upper }}</div>
+        <div class="wt">{{ g.team.name }}</div>
+        <div class="wm">{{ 'vs' if g.is_home else '@' }} {{ g.opponent }}</div>
+        <div style="margin-top:0.4rem"><span class="incount {{ 'short' if dashboard.next_week_counts.get(g.id, 0) < 11 else '' }}">{{ dashboard.next_week_counts.get(g.id, 0) }} in</span></div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if dashboard.recent_results %}
+<div class="card reveal">
+  <h2>Last 5 results <span class="muted small" style="font-weight:400">· across the club</span></h2>
+  <div class="results-list">
+    {% for g in dashboard.recent_results %}
+      <a class="result-row" href="{{ url_for('main.game_detail', game_id=g.id) }}">
+        {{ av.match_badge(g) }}
+        <span class="rr-team">{{ g.team.name }}</span>
+        <span class="rr-opp muted">{{ 'vs' if g.is_home else '@' }} {{ g.opponent }}</span>
+        <span class="rr-score">{{ g.our_score or '—' }} <span class="muted">v</span> {{ g.opp_score or '—' }}</span>
+        <span class="rr-date muted small">{{ g.starts_at.strftime('%-d %b') }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="eyebrow reveal" style="margin:0.4rem 0 0.6rem">All teams</div>
+<div class="teamgrid">
+  {% for c in dashboard.team_cards %}
+    <a class="teamcard reveal" href="{{ url_for('main.team_detail', team_id=c.team.id) }}">
+      <div>
+        <div class="teamname">{{ c.team.name }}</div>
+        <div class="teamdiv">{{ c.team.division }}</div>
+        {% if c.next %}
+          <div class="next">Next: {{ c.next.starts_at.strftime('%a %-d %b') }} vs {{ c.next.opponent }}</div>
+        {% else %}
+          <div class="next">No upcoming fixtures</div>
+        {% endif %}
+        {% if c.form %}<div style="margin-top:0.4rem">{{ av.form_guide(c.form, label=False, link=False) }}</div>{% endif %}
+      </div>
+      {% if c.in_count is not none %}
+        <span class="incount {{ 'short' if c.short else '' }}">{{ c.in_count }} in</span>
+      {% endif %}
+    </a>
+  {% endfor %}
+</div>
+
+{% else %}
+{# ---- Player view ---- #}
+{% if current_user.team_id %}
+<div class="cardhead reveal" style="margin-bottom:1.1rem">
+  <div>
+    <h1>{{ current_user.team.name }}</h1>
+    <p class="muted">Your next fixtures · {{ current_user.team.division }}</p>
+  </div>
+  <a class="btn" href="{{ url_for('main.team_detail', team_id=current_user.team_id) }}">Full schedule →</a>
+</div>
+
+{% if my_upcoming %}
+  <div class="fixtures">
+    {% for game in my_upcoming %}
+      <div class="reveal">
+      {{ av.fixture_card(game, in_counts.get(game.id), my_status.get(game.id),
+                         url_for('main.index'), true) }}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card"><p class="muted">No upcoming fixtures scheduled yet.</p></div>
+{% endif %}
+{% else %}
+<div class="card reveal">
+  <h1>Welcome, {{ current_user.name }}</h1>
+  <p class="muted">Browse the club's teams below.</p>
+</div>
+{% endif %}
+
+<div class="eyebrow reveal" style="margin:1.6rem 0 0.6rem">Club teams</div>
+<div class="teamgrid">
+  {% for team in teams %}
+    <a class="teamcard reveal" href="{{ url_for('main.team_detail', team_id=team.id) }}">
+      <div>
+        <div class="teamname">{{ team.name }}</div>
+        <div class="teamdiv">{{ team.division }}</div>
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
